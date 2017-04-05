@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<!--
+To change this license header, choose License Headers in Project Properties.
+To change this template file, choose Tools | Templates
+and open the template in the editor.
+-->
+<html>
+    <head>
+        <title>TODO supply a title</title>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <style>
+            
+            canvas
+            {
+                background-color: black;                
+            }
+            
+            
+        </style>
+        <script>
+            
+            var c;
+            var ctx;
+            var h;
+            var w;
+            
+            var objArr = new Array();
+            
+            
+            window.onload = function() {
+                
+                window.addEventListener('resize', resize, false);
+                window.addEventListener('click', function(e) {
+                    handleClick(e);
+                }, false);
+                resize();
+                setUp();                
+            }            
+            
+            function handleClick(e) {
+                for (var i = 0; i < objArr.length; i++) {
+                    var xD = objArr[i].xPos - e.clientX;
+                    var yD = objArr[i].yPos - e.clientY;                    
+                    if (Math.abs(xD) < 300 && Math.abs(yD) < 300) {
+                        if (Math.abs(xD) <= 5) {
+                            xD = 5;
+                        } 
+                        if (Math.abs(yD) <= 5) {
+                            yD = 5;
+                        }
+                        console.log(xD + ' ' + yD);
+                        objArr[i].state = 1;
+                        objArr[i].xV += 1/xD * 1000;
+                        objArr[i].yV += 1/yD * 1000;
+                    }
+                }
+            }
+            
+            function resize() {
+                h = window.innerHeight - 25;
+                w = window.innerWidth - 25;
+                c = document.getElementById('c');
+                c.width = w;
+                c.height = h;                
+                ctx = c.getContext('2d');
+                
+            }
+            
+            function setUp() {
+               
+                requestAnimationFrame(main);
+            }
+            
+            function main() {
+                
+                update();
+                render();
+                requestAnimationFrame(main);
+            }
+            var spawn = 0;
+            var splice = 0;
+            function update() {
+                for (var i = 0; i < objArr.length; i++) {
+                    objArr[i].update();
+                }
+                if (objArr.length < 100 && spawn%100 === 0) {
+                    var p = new Pdl(Math.round(Math.random() * w), 0, 0);
+                    p.state = 2;
+                    objArr.push(p);                    
+                }
+                if (splice % 100 === 0) {
+                    if (objArr[spawn%objArr.length].state === 3) {
+                        objArr.splice(spawn%objArr.length, 1);
+                    }
+                }
+                
+                spawn++;
+                splice++;
+            }
+            
+            function render() {
+                
+                ctx.clearRect(0, 0, w, h);
+                for (var i = 0; i < objArr.length; i++) {
+                    objArr[i].render();
+                }
+            }
+            
+            function Pdl(x, y, rot) {
+                this.xPos = x;
+                this.yPos = y;
+                this.xV = 0;
+                this.yV = 0;
+                this.xA = 0;
+                this.yA = 0;
+                this.g = 0.2;
+                this.state = 0;
+                this.rot = rot;
+                this.width = 150;
+                this.height = 200;
+                
+                this.img = new Image();
+                this.img.src = "assets/pdl.png";
+                this.update = function() {
+                    if (this.state === 0) {
+                        
+                    } else if (this.state === 1) {
+                        this.xV += this.xA;
+                        this.yV += this.yA;
+                        this.xPos += this.xV;
+                        this.yPos += this.yV;
+                        this.xV *= .5;
+                        this.yV *= .5;
+                        if(Math.abs(this.xV) < 50 && Math.abs(this.yV) < 50) {
+                            this.state = 2;
+                        }
+                        //rotate towards dir
+                        
+                        var alpha = Math.atan(-this.yV/this.xV);
+                        
+                        if (this.xV < 0) {
+                            this.rot = 90 - alpha * 57.29;
+                            
+                        } else {
+                            this.rot = -90 - alpha * 57.29;
+                            
+                        }
+                        console.log(alpha);                        
+                        console.log(this.rot);
+                        
+                        if (this.xV <= .1 && this.yV <= .1) {
+                            this.state = 2;
+                        }
+                                
+                    } else if (this.state === 2) {
+                        console.log('state 2');
+                        this.xV += this.xA;
+                        this.yV += this.yA;
+                        this.yV += this.g;
+                        this.xPos += this.xV;
+                        this.yPos += this.yV;
+                        this.xV *= .85;
+                        this.yV *= .85;
+                        var alpha = Math.atan(-this.yV/this.xV);
+                        
+                        if (this.xV < 0) {
+                            this.rot = 90 - alpha * 57.29;                           
+                            
+                        } else {
+                            this.rot = -90 - alpha * 57.29;                            
+                        }
+                        
+                        if (this.yPos >= h) {
+                            this.state = 3;
+                        }
+                        console.log(h - this.xPos);
+                    } else if (this.state === 3) {
+                        
+                        this.yPos = h;
+                        console.log(this.xPos);
+                    }
+                    //console.log(this.xPos + " " + this.yPos);
+                    //console.log(this.xV + " " + this.yV);
+                }
+                
+                this.render = function() {   
+                    var rad = this.rot * Math.PI / 180;
+                    ctx.save(); // save current state     
+                    //Set the origin to the center of the image
+                    ctx.translate(this.xPos, this.yPos - this.height/2);
+
+                    //Rotate the canvas around the origin
+                    ctx.rotate(rad);
+
+                    //draw the image    
+                    ctx.drawImage(this.img,this.width/ 2 * (-1),this.height / 2 * (-1),this.width,this.height);
+
+                     //reset the canvas  
+                    ctx.rotate(rad * ( -1 ) );
+                    ctx.translate((this.xPos + this.width / 2) * (-1), (this.yPos + this.height / 2) * (-1));                    
+                                    
+                    ctx.restore(); 
+                    
+                    
+                }
+            }
+            
+            
+        </script>
+        
+        
+    </head>
+    <body>
+        <canvas id="c"></canvas>
+    </body>
+</html>
